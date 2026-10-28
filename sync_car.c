@@ -9,10 +9,10 @@ void station_init(struct station *station){
 
     station->passageiros_esperando = 0;
     station->vagas_disponiveis = 0;
-    station->passageiros_autorizados = 0;
     station->passageiros_embarcados = 0;
 
     station->passageiros_meta = 0;
+    station->carro_presente = 0;
 }
 
 void station_wait_for_car(struct station *station){
@@ -21,13 +21,12 @@ void station_wait_for_car(struct station *station){
 
     station->passageiros_esperando++;
 
-    while(station->vagas_disponiveis == 0){
-        pthread_cond_wait(&station->condicao, &station->mutex);
-    }
+    while(!station->carro_presente || station->vagas_disponiveis == 0){
+    pthread_cond_wait(&station->condicao, &station->mutex);
+}
 
     station->passageiros_esperando--;
     station->vagas_disponiveis--;
-    station->passageiros_autorizados++;
 
     pthread_mutex_unlock(&station->mutex);
 
@@ -41,13 +40,12 @@ void station_load_car(struct station *station, int count){
 
     pthread_mutex_lock(&station->mutex);
 
+    station->carro_presente = 1;
     station->passageiros_embarcados = 0;
 
-    if(count < station->passageiros_esperando){
-        station->passageiros_meta = count;
-    }
+    station->passageiros_meta = count;
 
-    else{
+    if(station->passageiros_meta > station->passageiros_esperando){
         station->passageiros_meta = station->passageiros_esperando;
     }
 
@@ -61,8 +59,11 @@ void station_load_car(struct station *station, int count){
 
     station->vagas_disponiveis = 0;
 
-    pthread_mutex_unlock(&station->mutex);
+    station->carro_presente = 0;
 
+    pthread_cond_broadcast(&station->condicao);
+
+    pthread_mutex_unlock(&station->mutex);
 }
 
 void station_on_board(struct station *station){

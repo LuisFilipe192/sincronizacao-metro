@@ -10,10 +10,10 @@ struct station{
 
     int passageiros_esperando;
     int vagas_disponiveis;
-    int passageiros_autorizados;
     int passageiros_embarcados;
     
     int passageiros_meta;
+    int carro_presente;
 };
 
 void station_init(struct station *station);
